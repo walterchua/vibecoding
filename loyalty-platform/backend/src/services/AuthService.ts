@@ -15,17 +15,18 @@ export class AuthService {
   }
 
   static async sendOTP(phone: string): Promise<{ otpId: string; expiresAt: Date }> {
-    // Invalidate existing OTPs for this phone
-    await OTP.update(
-      { isVerified: true },
-      { where: { phone, isVerified: false } }
-    );
-
     const code = this.generateOTPCode();
     const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES || '5');
     const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-    const existingMember = await Member.findOne({ where: { phone } });
+    // Invalidate existing OTPs and look up member in parallel
+    const [, existingMember] = await Promise.all([
+      OTP.update(
+        { isVerified: true },
+        { where: { phone, isVerified: false } }
+      ),
+      Member.findOne({ where: { phone } }),
+    ]);
 
     const otp = await OTP.create({
       phone,
@@ -50,7 +51,6 @@ export class AuthService {
     const otp = await OTP.findOne({
       where: {
         phone,
-        code,
         isVerified: false,
         expiresAt: { [Op.gt]: new Date() },
       },
@@ -65,9 +65,16 @@ export class AuthService {
       throw new Error('Too many attempts. Please request a new OTP');
     }
 
-    await otp.update({ isVerified: true });
+    if (otp.code !== code) {
+      await otp.increment('attempts');
+      throw new Error('Invalid or expired OTP');
+    }
 
-    const existingMember = await Member.findOne({ where: { phone } });
+    // Mark OTP as verified and look up member in parallel
+    const [, existingMember] = await Promise.all([
+      otp.update({ isVerified: true }),
+      Member.findOne({ where: { phone } }),
+    ]);
 
     if (existingMember) {
       await existingMember.update({ lastLoginAt: new Date(), isVerified: true });
