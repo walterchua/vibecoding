@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { connectDatabase } from './config/database';
 import { syncDatabase, Tier } from './models';
+import { SettingsService } from './services/SettingsService';
 import routes from './routes';
 import { errorHandler, notFound } from './middleware/errorHandler';
 
@@ -93,6 +94,9 @@ const startServer = async () => {
         ]);
         console.log('Default tiers created');
       }
+
+      // Seed default settings if they don't exist
+      await SettingsService.seedDefaults();
     }
 
     app.listen(PORT, () => {

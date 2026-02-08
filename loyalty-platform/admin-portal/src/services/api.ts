@@ -73,6 +73,27 @@ export const getTiers = async () => {
   return response.data;
 };
 
+export const createTier = async (data: unknown) => {
+  const response = await api.post('/tiers', data);
+  return response.data;
+};
+
+export const updateTier = async (id: string, data: unknown) => {
+  const response = await api.put(`/tiers/${id}`, data);
+  return response.data;
+};
+
+// Settings
+export const getSettings = async (category: string) => {
+  const response = await api.get(`/settings/${category}`);
+  return response.data;
+};
+
+export const updateSettings = async (category: string, data: unknown) => {
+  const response = await api.put(`/settings/${category}`, data);
+  return response.data;
+};
+
 // Transactions
 export const getTransactions = async (params?: {
   page?: number;

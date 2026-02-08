@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { CampaignEngine } from '../engine/CampaignEngine';
 import { VoucherService } from '../services/VoucherService';
 import { TransactionService } from '../services/TransactionService';
+import { SettingsService } from '../services/SettingsService';
 import { Member, Tier, Campaign, Voucher, Transaction, PointsTransaction } from '../models';
 import { Op } from 'sequelize';
 import sequelize from '../config/database';
@@ -316,6 +317,27 @@ export class AdminController {
         tierDistribution,
         registrationTrend,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Settings
+  static async getSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { category } = req.params;
+      const settings = await SettingsService.getByCategory(category);
+      res.json({ settings });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateSettings(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { category } = req.params;
+      const settings = await SettingsService.updateCategory(category, req.body);
+      res.json({ settings });
     } catch (error) {
       next(error);
     }

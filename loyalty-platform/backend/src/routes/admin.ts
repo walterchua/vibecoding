@@ -67,6 +67,10 @@ router.post(
 );
 router.put('/tiers/:id', AdminController.updateTier);
 
+// Settings
+router.get('/settings/:category', AdminController.getSettings);
+router.put('/settings/:category', AdminController.updateSettings);
+
 // Transactions
 router.get('/transactions', AdminController.getTransactions);
 

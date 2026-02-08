@@ -1,5 +1,6 @@
 import { Campaign, Member, Tier, MemberVoucher, Voucher } from '../models';
 import { PointsService } from '../services/PointsService';
+import { SettingsService } from '../services/SettingsService';
 import { Op } from 'sequelize';
 
 interface TransactionData {
@@ -54,8 +55,14 @@ export class CampaignEngine {
     const rewards: CampaignReward[] = [];
     const tier = await Tier.findByPk(member.tierId);
 
-    // Calculate base points (e.g., $1 = 1 point)
-    const basePoints = Math.floor(transaction.total);
+    // Load configurable points settings
+    const pointsConfig = await SettingsService.getByCategory('points_config');
+    const earningRate = Number(pointsConfig.baseEarningRate) || 1;
+    const roundingRule = (pointsConfig.roundingRule as string) || 'floor';
+
+    // Calculate base points using configurable earning rate
+    const rawPoints = transaction.total * earningRate;
+    const basePoints = roundingRule === 'round' ? Math.round(rawPoints) : Math.floor(rawPoints);
     const tierMultiplier = tier?.pointsMultiplier || 1;
     let totalPoints = Math.floor(basePoints * tierMultiplier);
 

@@ -6,6 +6,8 @@ import Members from './pages/Members';
 import Vouchers from './pages/Vouchers';
 import Transactions from './pages/Transactions';
 import Reports from './pages/Reports';
+import MembershipSettings from './pages/MembershipSettings';
+import AdminSettings from './pages/AdminSettings';
 
 function App() {
   return (
@@ -19,6 +21,8 @@ function App() {
           <Route path="vouchers" element={<Vouchers />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="settings/membership" element={<MembershipSettings />} />
+          <Route path="settings/admin" element={<AdminSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

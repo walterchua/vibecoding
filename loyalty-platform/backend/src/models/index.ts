@@ -9,6 +9,7 @@ import Transaction from './Transaction';
 import QRCode from './QRCode';
 import OTP from './OTP';
 import RefreshToken from './RefreshToken';
+import Setting from './Setting';
 
 // Member <-> Tier
 Member.belongsTo(Tier, { foreignKey: 'tierId', as: 'tier' });
@@ -68,4 +69,5 @@ export {
   QRCode,
   OTP,
   RefreshToken,
+  Setting,
 };
