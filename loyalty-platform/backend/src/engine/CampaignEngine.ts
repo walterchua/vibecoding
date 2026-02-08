@@ -42,7 +42,7 @@ export class CampaignEngine {
 
   static async evaluateTransaction(
     transaction: TransactionData
-  ): Promise<CampaignReward[]> {
+  ): Promise<{ rewards: CampaignReward[]; totalPoints: number }> {
     const campaigns = await this.getActiveCampaigns();
     const member = await Member.findByPk(transaction.memberId, {
       include: [{ model: Tier, as: 'tier' }],
@@ -95,7 +95,7 @@ export class CampaignEngine {
       });
     }
 
-    return rewards;
+    return { rewards, totalPoints };
   }
 
   private static matchesCriteria(

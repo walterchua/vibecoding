@@ -25,10 +25,10 @@ router.post(
   TransactionController.submitTransaction
 );
 
+// Member route - get own transactions (must be before /:id to avoid matching "member" as :id)
+router.get('/member/history', authenticate, TransactionController.getMemberTransactions);
+
 // POS route - get transaction status
 router.get('/:id', authenticatePOS, TransactionController.getTransactionStatus);
-
-// Member route - get own transactions
-router.get('/member/history', authenticate, TransactionController.getMemberTransactions);
 
 export default router;

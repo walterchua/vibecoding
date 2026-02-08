@@ -80,7 +80,7 @@ export class TransactionService {
 
     try {
       // Process rewards using campaign engine
-      const rewards = await CampaignEngine.evaluateTransaction({
+      const { rewards, totalPoints } = await CampaignEngine.evaluateTransaction({
         memberId: member.id,
         total: params.total,
         items: params.items,
@@ -88,10 +88,8 @@ export class TransactionService {
         transactionDate: params.transactionDate,
       });
 
-      // Calculate total points earned
-      const pointsEarned = rewards
-        .filter((r) => r.type === 'points')
-        .reduce((sum, r) => sum + (r.points || 0), 0);
+      // Use totalPoints from engine (includes base + tier multiplier + campaign bonuses)
+      const pointsEarned = totalPoints;
 
       // Get vouchers awarded
       const vouchersAwarded = rewards
