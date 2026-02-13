@@ -10,15 +10,15 @@ export class AdminAuthController {
 
       res.json({
         admin: {
-          id: result.admin.id,
-          email: result.admin.email,
-          firstName: result.admin.firstName,
-          lastName: result.admin.lastName,
-          role: result.admin.role,
-          merchantBrandId: result.admin.merchantBrandId,
+          id: result.adminUser.id,
+          email: result.adminUser.email,
+          firstName: result.adminUser.firstName,
+          lastName: result.adminUser.lastName,
+          role: result.adminUser.role,
+          merchantBrandId: result.adminUser.merchantBrandId,
         },
-        token: result.token,
-        expiresIn: result.expiresIn,
+        token: result.tokens.accessToken,
+        expiresIn: result.tokens.expiresIn,
       });
     } catch (error) {
       next(error);

@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { MemberMerchantController } from '../controllers/MemberMerchantController';
-import { authenticateMember } from '../middleware/auth';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
 // All routes require member authentication
-router.use(authenticateMember);
+router.use(authenticate);
 
 // Browse available merchants
 router.get('/browse', MemberMerchantController.browseMerchants);

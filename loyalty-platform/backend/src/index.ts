@@ -47,6 +47,27 @@ const startServer = async () => {
     if (process.env.NODE_ENV === 'development') {
       await syncDatabase(false);
 
+      // Drop legacy unique constraints that conflict with new composite ones
+      const { sequelize: sq } = require('./models');
+      const legacyConstraints = [
+        { table: 'settings', constraint: 'settings_category_key' },
+        { table: 'tiers', constraint: 'tiers_code' },
+        { table: 'vouchers', constraint: 'vouchers_code' },
+      ];
+      for (const { table, constraint } of legacyConstraints) {
+        try {
+          await sq.query(`ALTER TABLE "${table}" DROP CONSTRAINT IF EXISTS "${constraint}"`);
+        } catch (e) {
+          // Constraint may not exist
+        }
+        // Also drop legacy unique indexes
+        try {
+          await sq.query(`DROP INDEX IF EXISTS "${constraint}"`);
+        } catch (e) {
+          // Index may not exist
+        }
+      }
+
       // Seed default merchant brand if none exist
       const brandCount = await MerchantBrand.count();
       let defaultBrand: MerchantBrand;
