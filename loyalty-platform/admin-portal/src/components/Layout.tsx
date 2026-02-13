@@ -50,7 +50,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg flex flex-col">
+      <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg flex flex-col z-20">
         <div className="flex h-16 items-center px-6 border-b">
           <span className="text-xl font-bold text-indigo-600">Loyalty Admin</span>
         </div>
@@ -143,7 +143,7 @@ export default function Layout() {
       </div>
 
       {/* Main Content */}
-      <div className="pl-64">
+      <div className="ml-64 relative z-0">
         <header className="h-16 bg-white shadow-sm flex items-center justify-between px-6">
           <h1 className="text-lg font-semibold text-gray-800">
             Loyalty Platform Admin
