@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { TransactionService } from '../services/TransactionService';
+import { Merchant } from '../models';
 
 export class TransactionController {
   // POS endpoint - submit transaction
@@ -12,6 +13,8 @@ export class TransactionController {
         posId,
         locationId,
         locationName,
+        merchantBrandId,
+        outletId,
         items,
         subtotal,
         tax,
@@ -31,6 +34,17 @@ export class TransactionController {
         return;
       }
 
+      // If merchantBrandId not in body, try to derive from POS
+      let effectiveBrandId = merchantBrandId;
+      let effectiveOutletId = outletId;
+      if (!effectiveBrandId && posId) {
+        const merchant = await Merchant.findOne({ where: { posId } });
+        if (merchant) {
+          effectiveBrandId = merchant.merchantBrandId;
+          effectiveOutletId = effectiveOutletId || merchant.outletId;
+        }
+      }
+
       const result = await TransactionService.submitTransaction({
         memberId,
         memberPhone,
@@ -38,6 +52,8 @@ export class TransactionController {
         posId,
         locationId,
         locationName,
+        merchantBrandId: effectiveBrandId,
+        outletId: effectiveOutletId,
         items,
         subtotal,
         tax,
@@ -110,12 +126,14 @@ export class TransactionController {
       const limit = parseInt(req.query.limit as string) || 20;
       const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
       const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      const merchantBrandId = req.query.merchantBrandId as string | undefined;
 
       const result = await TransactionService.getMemberTransactions(memberId, {
         page,
         limit,
         startDate,
         endDate,
+        merchantBrandId,
       });
 
       res.json({

@@ -3,6 +3,7 @@ import sequelize from '../config/database';
 
 interface PointsTransactionAttributes {
   id: string;
+  merchantBrandId?: string;
   memberId: string;
   type: 'earn' | 'redeem' | 'expire' | 'adjust';
   points: number;
@@ -17,10 +18,11 @@ interface PointsTransactionAttributes {
   updatedAt?: Date;
 }
 
-interface PointsTransactionCreationAttributes extends Optional<PointsTransactionAttributes, 'id' | 'description' | 'referenceType' | 'referenceId' | 'campaignId' | 'expiresAt' | 'createdAt' | 'updatedAt'> {}
+interface PointsTransactionCreationAttributes extends Optional<PointsTransactionAttributes, 'id' | 'merchantBrandId' | 'description' | 'referenceType' | 'referenceId' | 'campaignId' | 'expiresAt' | 'createdAt' | 'updatedAt'> {}
 
 class PointsTransaction extends Model<PointsTransactionAttributes, PointsTransactionCreationAttributes> implements PointsTransactionAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public memberId!: string;
   public type!: 'earn' | 'redeem' | 'expire' | 'adjust';
   public points!: number;
@@ -41,6 +43,10 @@ PointsTransaction.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     memberId: {
       type: DataTypes.UUID,
@@ -88,6 +94,7 @@ PointsTransaction.init(
     tableName: 'points_transactions',
     timestamps: true,
     indexes: [
+      { fields: ['merchantBrandId'] },
       { fields: ['memberId'] },
       { fields: ['type'] },
       { fields: ['createdAt'] },

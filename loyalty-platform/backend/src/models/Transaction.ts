@@ -12,6 +12,8 @@ interface TransactionItem {
 
 interface TransactionAttributes {
   id: string;
+  merchantBrandId?: string;
+  outletId?: string;
   memberId: string;
   externalId: string;
   posId: string;
@@ -33,10 +35,12 @@ interface TransactionAttributes {
   updatedAt?: Date;
 }
 
-interface TransactionCreationAttributes extends Optional<TransactionAttributes, 'id' | 'locationId' | 'locationName' | 'tax' | 'discount' | 'paymentMethod' | 'pointsEarned' | 'pointsRedeemed' | 'campaignId' | 'status' | 'processedAt' | 'createdAt' | 'updatedAt'> {}
+interface TransactionCreationAttributes extends Optional<TransactionAttributes, 'id' | 'merchantBrandId' | 'outletId' | 'locationId' | 'locationName' | 'tax' | 'discount' | 'paymentMethod' | 'pointsEarned' | 'pointsRedeemed' | 'campaignId' | 'status' | 'processedAt' | 'createdAt' | 'updatedAt'> {}
 
 class Transaction extends Model<TransactionAttributes, TransactionCreationAttributes> implements TransactionAttributes {
   public id!: string;
+  public merchantBrandId?: string;
+  public outletId?: string;
   public memberId!: string;
   public externalId!: string;
   public posId!: string;
@@ -64,6 +68,14 @@ Transaction.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    outletId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     memberId: {
       type: DataTypes.UUID,
@@ -141,6 +153,8 @@ Transaction.init(
     tableName: 'transactions',
     timestamps: true,
     indexes: [
+      { fields: ['merchantBrandId'] },
+      { fields: ['outletId'] },
       { fields: ['memberId'] },
       { fields: ['externalId'] },
       { fields: ['posId'] },

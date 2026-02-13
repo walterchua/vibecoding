@@ -3,6 +3,7 @@ import sequelize from '../config/database';
 
 interface TierAttributes {
   id: string;
+  merchantBrandId?: string;
   name: string;
   code: string;
   minPoints: number;
@@ -17,10 +18,11 @@ interface TierAttributes {
   updatedAt?: Date;
 }
 
-interface TierCreationAttributes extends Optional<TierAttributes, 'id' | 'pointsMultiplier' | 'benefits' | 'color' | 'icon' | 'sortOrder' | 'isActive' | 'createdAt' | 'updatedAt'> {}
+interface TierCreationAttributes extends Optional<TierAttributes, 'id' | 'merchantBrandId' | 'pointsMultiplier' | 'benefits' | 'color' | 'icon' | 'sortOrder' | 'isActive' | 'createdAt' | 'updatedAt'> {}
 
 class Tier extends Model<TierAttributes, TierCreationAttributes> implements TierAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public name!: string;
   public code!: string;
   public minPoints!: number;
@@ -42,6 +44,10 @@ Tier.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
     name: {
       type: DataTypes.STRING(50),
       allowNull: false,
@@ -49,7 +55,6 @@ Tier.init(
     code: {
       type: DataTypes.STRING(20),
       allowNull: false,
-      unique: true,
     },
     minPoints: {
       type: DataTypes.INTEGER,
@@ -89,6 +94,10 @@ Tier.init(
     sequelize,
     tableName: 'tiers',
     timestamps: true,
+    indexes: [
+      { unique: true, fields: ['code', 'merchantBrandId'] },
+      { fields: ['merchantBrandId'] },
+    ],
   }
 );
 

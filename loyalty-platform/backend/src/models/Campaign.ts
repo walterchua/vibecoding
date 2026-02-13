@@ -22,6 +22,7 @@ interface CampaignReward {
 
 interface CampaignAttributes {
   id: string;
+  merchantBrandId?: string;
   name: string;
   description?: string;
   type: 'points_earn' | 'points_multiplier' | 'voucher_distribution' | 'tier_bonus';
@@ -36,10 +37,11 @@ interface CampaignAttributes {
   updatedAt?: Date;
 }
 
-interface CampaignCreationAttributes extends Optional<CampaignAttributes, 'id' | 'description' | 'priority' | 'isActive' | 'createdBy' | 'createdAt' | 'updatedAt'> {}
+interface CampaignCreationAttributes extends Optional<CampaignAttributes, 'id' | 'merchantBrandId' | 'description' | 'priority' | 'isActive' | 'createdBy' | 'createdAt' | 'updatedAt'> {}
 
 class Campaign extends Model<CampaignAttributes, CampaignCreationAttributes> implements CampaignAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public name!: string;
   public description?: string;
   public type!: 'points_earn' | 'points_multiplier' | 'voucher_distribution' | 'tier_bonus';
@@ -60,6 +62,10 @@ Campaign.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     name: {
       type: DataTypes.STRING(100),
@@ -108,6 +114,7 @@ Campaign.init(
     tableName: 'campaigns',
     timestamps: true,
     indexes: [
+      { fields: ['merchantBrandId'] },
       { fields: ['isActive'] },
       { fields: ['startDate', 'endDate'] },
       { fields: ['type'] },

@@ -4,7 +4,8 @@ import { VoucherService } from '../services/VoucherService';
 export class VoucherController {
   static async getAvailableVouchers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const vouchers = await VoucherService.getAvailableVouchers();
+      const merchantBrandId = req.query.merchantBrandId as string | undefined;
+      const vouchers = await VoucherService.getAvailableVouchers(merchantBrandId);
       res.json({ vouchers });
     } catch (error) {
       next(error);
@@ -29,12 +30,15 @@ export class VoucherController {
     try {
       const memberId = req.memberId!;
       const { id } = req.params;
-      const memberVoucher = await VoucherService.claimVoucher(memberId, id);
+      const merchantBrandId = req.query.merchantBrandId as string | undefined;
+
+      const memberVoucher = await VoucherService.claimVoucher(memberId, id, merchantBrandId);
       res.status(201).json({
         message: 'Voucher claimed successfully',
         memberVoucher: {
           id: memberVoucher.id,
           voucherId: memberVoucher.voucherId,
+          merchantBrandId: memberVoucher.merchantBrandId,
           status: memberVoucher.status,
           expiresAt: memberVoucher.expiresAt,
         },
@@ -48,12 +52,15 @@ export class VoucherController {
     try {
       const memberId = req.memberId!;
       const status = req.query.status as 'active' | 'used' | 'expired' | undefined;
-      const vouchers = await VoucherService.getMemberVouchers(memberId, status);
+      const merchantBrandId = req.query.merchantBrandId as string | undefined;
+
+      const vouchers = await VoucherService.getMemberVouchers(memberId, status, merchantBrandId);
       res.json({
         vouchers: vouchers.map((mv) => ({
           id: mv.id,
           voucherId: mv.voucherId,
           voucher: mv.get('voucher'),
+          merchantBrandId: mv.merchantBrandId,
           status: mv.status,
           expiresAt: mv.expiresAt,
           usedAt: mv.usedAt,
@@ -79,6 +86,7 @@ export class VoucherController {
           id: memberVoucher.id,
           voucherId: memberVoucher.voucherId,
           voucher: memberVoucher.get('voucher'),
+          merchantBrandId: memberVoucher.merchantBrandId,
           status: memberVoucher.status,
           expiresAt: memberVoucher.expiresAt,
           usedAt: memberVoucher.usedAt,

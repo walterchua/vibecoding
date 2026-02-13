@@ -18,6 +18,8 @@ interface SubmitTransactionParams {
   posId: string;
   locationId?: string;
   locationName?: string;
+  merchantBrandId?: string;
+  outletId?: string;
   items: TransactionItem[];
   subtotal: number;
   tax?: number;
@@ -39,7 +41,6 @@ export class TransactionService {
   static async submitTransaction(
     params: SubmitTransactionParams
   ): Promise<TransactionResult> {
-    // Find member by ID or phone
     let member: Member | null = null;
 
     if (params.memberId) {
@@ -52,7 +53,6 @@ export class TransactionService {
       throw new Error('Member not found');
     }
 
-    // Check for duplicate transaction
     const existingTransaction = await Transaction.findOne({
       where: { externalId: params.externalId },
     });
@@ -61,9 +61,10 @@ export class TransactionService {
       throw new Error('Transaction already processed');
     }
 
-    // Create transaction record
     const transaction = await Transaction.create({
       memberId: member.id,
+      merchantBrandId: params.merchantBrandId,
+      outletId: params.outletId,
       externalId: params.externalId,
       posId: params.posId,
       locationId: params.locationId,
@@ -79,25 +80,22 @@ export class TransactionService {
     });
 
     try {
-      // Process rewards using campaign engine
       const { rewards, totalPoints } = await CampaignEngine.evaluateTransaction({
         memberId: member.id,
+        merchantBrandId: params.merchantBrandId,
         total: params.total,
         items: params.items,
         locationId: params.locationId,
         transactionDate: params.transactionDate,
       });
 
-      // Use totalPoints from engine (includes base + tier multiplier + campaign bonuses)
       const pointsEarned = totalPoints;
 
-      // Get vouchers awarded
       const vouchersAwarded = rewards
         .filter((r) => r.type === 'voucher')
         .map((r) => r.voucherName || '')
         .filter(Boolean);
 
-      // Update transaction with rewards
       await transaction.update({
         status: 'processed',
         pointsEarned,
@@ -106,10 +104,7 @@ export class TransactionService {
 
       return {
         transaction,
-        rewards: {
-          pointsEarned,
-          vouchersAwarded,
-        },
+        rewards: { pointsEarned, vouchersAwarded },
       };
     } catch (error) {
       await transaction.update({ status: 'failed' });
@@ -132,7 +127,7 @@ export class TransactionService {
 
   static async getMemberTransactions(
     memberId: string,
-    options: { page?: number; limit?: number; startDate?: Date; endDate?: Date } = {}
+    options: { page?: number; limit?: number; startDate?: Date; endDate?: Date; merchantBrandId?: string } = {}
   ): Promise<{
     transactions: Transaction[];
     total: number;
@@ -144,6 +139,9 @@ export class TransactionService {
     const offset = (page - 1) * limit;
 
     const where: Record<string, unknown> = { memberId };
+    if (options.merchantBrandId) {
+      where.merchantBrandId = options.merchantBrandId;
+    }
 
     if (options.startDate || options.endDate) {
       where.transactionDate = {};
@@ -162,15 +160,9 @@ export class TransactionService {
       offset,
     });
 
-    return {
-      transactions,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return { transactions, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  // Admin functions
   static async getAllTransactions(
     options: {
       page?: number;
@@ -179,6 +171,7 @@ export class TransactionService {
       posId?: string;
       startDate?: Date;
       endDate?: Date;
+      merchantBrandId?: string;
     } = {}
   ): Promise<{
     transactions: Transaction[];
@@ -191,14 +184,9 @@ export class TransactionService {
     const offset = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
-
-    if (options.status) {
-      where.status = options.status;
-    }
-
-    if (options.posId) {
-      where.posId = options.posId;
-    }
+    if (options.merchantBrandId) where.merchantBrandId = options.merchantBrandId;
+    if (options.status) where.status = options.status;
+    if (options.posId) where.posId = options.posId;
 
     if (options.startDate || options.endDate) {
       where.transactionDate = {};
@@ -218,11 +206,6 @@ export class TransactionService {
       offset,
     });
 
-    return {
-      transactions,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
-    };
+    return { transactions, total, page, totalPages: Math.ceil(total / limit) };
   }
 }

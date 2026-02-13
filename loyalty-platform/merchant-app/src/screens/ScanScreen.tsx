@@ -19,6 +19,9 @@ interface ScanResult {
   type: 'membership' | 'voucher' | 'points';
   memberId: string;
   memberName: string;
+  memberPhone?: string;
+  memberPoints?: number;
+  memberTier?: string;
   points?: number;
   voucher?: {
     id: string;
@@ -56,7 +59,9 @@ export default function ScanScreen() {
         navigation.navigate('Transaction', {
           memberId: result.memberId,
           memberName: result.memberName,
-          memberPhone: '', // Phone not available from QR
+          memberPhone: result.memberPhone || '',
+          memberPoints: result.memberPoints,
+          memberTier: result.memberTier,
         });
       } else if (result.type === 'voucher' && result.voucher) {
         // Show voucher redemption confirmation
@@ -154,9 +159,16 @@ export default function ScanScreen() {
     );
   }
 
+  if (!isFocused) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.camera} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      {isFocused ? (
       <CameraView
         style={styles.camera}
         facing="back"
@@ -198,9 +210,6 @@ export default function ScanScreen() {
           )}
         </View>
       </CameraView>
-      ) : (
-        <View style={styles.camera} />
-      )}
     </View>
   );
 }

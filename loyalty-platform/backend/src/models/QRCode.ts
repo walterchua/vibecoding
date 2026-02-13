@@ -11,6 +11,7 @@ interface QRCodePayload {
 
 interface QRCodeAttributes {
   id: string;
+  merchantBrandId?: string;
   memberId: string;
   type: 'points' | 'voucher' | 'membership';
   payload: QRCodePayload;
@@ -26,10 +27,11 @@ interface QRCodeAttributes {
   updatedAt?: Date;
 }
 
-interface QRCodeCreationAttributes extends Optional<QRCodeAttributes, 'id' | 'memberVoucherId' | 'pointsAmount' | 'status' | 'usedAt' | 'usedByPosId' | 'createdAt' | 'updatedAt'> {}
+interface QRCodeCreationAttributes extends Optional<QRCodeAttributes, 'id' | 'merchantBrandId' | 'memberVoucherId' | 'pointsAmount' | 'status' | 'usedAt' | 'usedByPosId' | 'createdAt' | 'updatedAt'> {}
 
 class QRCode extends Model<QRCodeAttributes, QRCodeCreationAttributes> implements QRCodeAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public memberId!: string;
   public type!: 'points' | 'voucher' | 'membership';
   public payload!: QRCodePayload;
@@ -51,6 +53,10 @@ QRCode.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     memberId: {
       type: DataTypes.UUID,

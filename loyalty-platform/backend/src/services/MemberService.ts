@@ -1,4 +1,4 @@
-import { Member, Tier, PointsTransaction, MemberVoucher, Voucher } from '../models';
+import { Member, Tier, PointsTransaction, MemberVoucher, Voucher, MerchantMember } from '../models';
 import { Op } from 'sequelize';
 
 interface MemberProfile {
@@ -28,7 +28,7 @@ interface MemberProfile {
 }
 
 export class MemberService {
-  static async getProfile(memberId: string): Promise<MemberProfile> {
+  static async getProfile(memberId: string, merchantBrandId?: string): Promise<MemberProfile> {
     const member = await Member.findByPk(memberId, {
       include: [{ model: Tier, as: 'tier' }],
     });
@@ -37,12 +37,39 @@ export class MemberService {
       throw new Error('Member not found');
     }
 
-    const tier = await Tier.findByPk(member.tierId);
+    let tierId = member.tierId;
+    let availablePoints = member.availablePoints;
+    let totalPoints = member.totalPoints;
+    let lifetimePoints = member.lifetimePoints;
+
+    // Use merchant-specific data if merchantBrandId provided
+    if (merchantBrandId) {
+      const mm = await MerchantMember.findOne({
+        where: { memberId, merchantBrandId, isActive: true },
+        include: [{ model: Tier, as: 'tier' }],
+      });
+      if (mm) {
+        tierId = mm.tierId;
+        availablePoints = mm.availablePoints;
+        totalPoints = mm.totalPoints;
+        lifetimePoints = mm.lifetimePoints;
+      }
+    }
+
+    const tier = await Tier.findByPk(tierId);
+
+    // Find next tier — scoped to merchant if applicable
+    const nextTierWhere: Record<string, unknown> = {
+      minPoints: { [Op.gt]: tier?.maxPoints || 0 },
+      isActive: true,
+    };
+    if (merchantBrandId) {
+      nextTierWhere.merchantBrandId = merchantBrandId;
+    } else {
+      nextTierWhere.merchantBrandId = null;
+    }
     const nextTier = await Tier.findOne({
-      where: {
-        minPoints: { [Op.gt]: tier?.maxPoints || 0 },
-        isActive: true,
-      },
+      where: nextTierWhere,
       order: [['minPoints', 'ASC']],
     });
 
@@ -61,9 +88,9 @@ export class MemberService {
         color: tier!.color,
       },
       points: {
-        available: member.availablePoints,
-        total: member.totalPoints,
-        lifetime: member.lifetimePoints,
+        available: availablePoints,
+        total: totalPoints,
+        lifetime: lifetimePoints,
       },
     };
 
@@ -71,7 +98,7 @@ export class MemberService {
       profile.nextTier = {
         name: nextTier.name,
         pointsRequired: nextTier.minPoints,
-        pointsToGo: nextTier.minPoints - member.lifetimePoints,
+        pointsToGo: nextTier.minPoints - lifetimePoints,
       };
     }
 
@@ -109,7 +136,7 @@ export class MemberService {
 
   static async getPointsHistory(
     memberId: string,
-    options: { page?: number; limit?: number; type?: string } = {}
+    options: { page?: number; limit?: number; type?: string; merchantBrandId?: string } = {}
   ): Promise<{ transactions: PointsTransaction[]; total: number; page: number; totalPages: number }> {
     const page = options.page || 1;
     const limit = options.limit || 20;
@@ -118,6 +145,9 @@ export class MemberService {
     const where: Record<string, unknown> = { memberId };
     if (options.type) {
       where.type = options.type;
+    }
+    if (options.merchantBrandId) {
+      where.merchantBrandId = options.merchantBrandId;
     }
 
     const { rows: transactions, count: total } = await PointsTransaction.findAndCountAll({
@@ -135,7 +165,7 @@ export class MemberService {
     };
   }
 
-  static async getTierProgress(memberId: string): Promise<{
+  static async getTierProgress(memberId: string, merchantBrandId?: string): Promise<{
     currentTier: Tier;
     nextTier: Tier | null;
     progress: number;
@@ -146,16 +176,37 @@ export class MemberService {
       throw new Error('Member not found');
     }
 
-    const currentTier = await Tier.findByPk(member.tierId);
+    let tierId = member.tierId;
+    let lifetimePoints = member.lifetimePoints;
+
+    // Use merchant-specific data if merchantBrandId provided
+    if (merchantBrandId) {
+      const mm = await MerchantMember.findOne({
+        where: { memberId, merchantBrandId, isActive: true },
+      });
+      if (mm) {
+        tierId = mm.tierId;
+        lifetimePoints = mm.lifetimePoints;
+      }
+    }
+
+    const currentTier = await Tier.findByPk(tierId);
     if (!currentTier) {
       throw new Error('Tier not found');
     }
 
+    // Find next tier — scoped to merchant if applicable
+    const nextTierWhere: Record<string, unknown> = {
+      minPoints: { [Op.gt]: currentTier.maxPoints },
+      isActive: true,
+    };
+    if (merchantBrandId) {
+      nextTierWhere.merchantBrandId = merchantBrandId;
+    } else {
+      nextTierWhere.merchantBrandId = null;
+    }
     const nextTier = await Tier.findOne({
-      where: {
-        minPoints: { [Op.gt]: currentTier.maxPoints },
-        isActive: true,
-      },
+      where: nextTierWhere,
       order: [['minPoints', 'ASC']],
     });
 
@@ -164,9 +215,9 @@ export class MemberService {
 
     if (nextTier) {
       const tierRange = currentTier.maxPoints - currentTier.minPoints;
-      const memberProgress = member.lifetimePoints - currentTier.minPoints;
+      const memberProgress = lifetimePoints - currentTier.minPoints;
       progress = Math.min(100, Math.floor((memberProgress / tierRange) * 100));
-      pointsToNextTier = nextTier.minPoints - member.lifetimePoints;
+      pointsToNextTier = nextTier.minPoints - lifetimePoints;
     }
 
     return {
@@ -177,17 +228,44 @@ export class MemberService {
     };
   }
 
-  static async checkAndUpgradeTier(memberId: string): Promise<{ upgraded: boolean; newTier?: Tier }> {
+  static async checkAndUpgradeTier(memberId: string, merchantBrandId?: string): Promise<{ upgraded: boolean; newTier?: Tier }> {
     const member = await Member.findByPk(memberId);
     if (!member) {
       throw new Error('Member not found');
     }
 
+    if (merchantBrandId) {
+      const mm = await MerchantMember.findOne({
+        where: { memberId, merchantBrandId, isActive: true },
+      });
+      if (!mm) {
+        return { upgraded: false };
+      }
+
+      const eligibleTier = await Tier.findOne({
+        where: {
+          merchantBrandId,
+          minPoints: { [Op.lte]: mm.lifetimePoints },
+          maxPoints: { [Op.gte]: mm.lifetimePoints },
+          isActive: true,
+        },
+      });
+
+      if (eligibleTier && eligibleTier.id !== mm.tierId) {
+        await mm.update({ tierId: eligibleTier.id });
+        return { upgraded: true, newTier: eligibleTier };
+      }
+
+      return { upgraded: false };
+    }
+
+    // Legacy: operate on global Member
     const eligibleTier = await Tier.findOne({
       where: {
         minPoints: { [Op.lte]: member.lifetimePoints },
         maxPoints: { [Op.gte]: member.lifetimePoints },
         isActive: true,
+        merchantBrandId: null,
       },
     });
 
@@ -201,11 +279,15 @@ export class MemberService {
 
   static async getMemberVouchers(
     memberId: string,
-    status?: 'active' | 'used' | 'expired'
+    status?: 'active' | 'used' | 'expired',
+    merchantBrandId?: string
   ): Promise<MemberVoucher[]> {
     const where: Record<string, unknown> = { memberId };
     if (status) {
       where.status = status;
+    }
+    if (merchantBrandId) {
+      where.merchantBrandId = merchantBrandId;
     }
 
     return MemberVoucher.findAll({

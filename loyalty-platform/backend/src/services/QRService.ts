@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import QRCodeLib from 'qrcode';
-import { QRCode, Member, MemberVoucher, Voucher } from '../models';
+import { QRCode, Member, MemberVoucher, Voucher, MerchantMember } from '../models';
 import { PointsService } from './PointsService';
 import { VoucherService } from './VoucherService';
 import { Op } from 'sequelize';
@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 interface QRPayload {
   type: 'points' | 'voucher' | 'membership';
   memberId: string;
+  merchantBrandId?: string;
   points?: number;
   memberVoucherId?: string;
   exp: number;
@@ -23,6 +24,7 @@ interface ValidateQRResult {
   valid: boolean;
   type: 'points' | 'voucher' | 'membership';
   memberId: string;
+  merchantBrandId?: string;
   memberName?: string;
   points?: number;
   voucher?: {
@@ -53,15 +55,25 @@ export class QRService {
 
   static async generatePointsQR(
     memberId: string,
-    points: number
+    points: number,
+    merchantBrandId?: string
   ): Promise<GenerateQRResult> {
     const member = await Member.findByPk(memberId);
     if (!member) {
       throw new Error('Member not found');
     }
 
-    if (member.availablePoints < points) {
-      throw new Error('Insufficient points');
+    // Check points from merchant-specific balance if applicable
+    if (merchantBrandId) {
+      const mm = await MerchantMember.findOne({
+        where: { memberId, merchantBrandId, isActive: true },
+      });
+      if (!mm) throw new Error('Not a member of this merchant');
+      if (mm.availablePoints < points) throw new Error('Insufficient points');
+    } else {
+      if (member.availablePoints < points) {
+        throw new Error('Insufficient points');
+      }
     }
 
     const expiresAt = new Date(Date.now() + this.QR_EXPIRY_MINUTES * 60 * 1000);
@@ -69,6 +81,7 @@ export class QRService {
     const payload: QRPayload = {
       type: 'points',
       memberId,
+      merchantBrandId,
       points,
       exp: expiresAt.getTime(),
     };
@@ -78,6 +91,7 @@ export class QRService {
 
     const qrCode = await QRCode.create({
       memberId,
+      merchantBrandId,
       type: 'points',
       payload,
       token,
@@ -97,7 +111,8 @@ export class QRService {
 
   static async generateVoucherQR(
     memberId: string,
-    memberVoucherId: string
+    memberVoucherId: string,
+    merchantBrandId?: string
   ): Promise<GenerateQRResult> {
     const memberVoucher = await MemberVoucher.findOne({
       where: { id: memberVoucherId, memberId, status: 'active' },
@@ -114,9 +129,12 @@ export class QRService {
 
     const expiresAt = new Date(Date.now() + this.QR_EXPIRY_MINUTES * 60 * 1000);
 
+    const effectiveBrandId = merchantBrandId || memberVoucher.merchantBrandId;
+
     const payload: QRPayload = {
       type: 'voucher',
       memberId,
+      merchantBrandId: effectiveBrandId,
       memberVoucherId,
       exp: expiresAt.getTime(),
     };
@@ -126,6 +144,7 @@ export class QRService {
 
     const qrCode = await QRCode.create({
       memberId,
+      merchantBrandId: effectiveBrandId,
       type: 'voucher',
       payload,
       token,
@@ -143,7 +162,7 @@ export class QRService {
     return { qrCode, qrImage, expiresAt };
   }
 
-  static async generateMembershipQR(memberId: string): Promise<GenerateQRResult> {
+  static async generateMembershipQR(memberId: string, merchantBrandId?: string): Promise<GenerateQRResult> {
     const member = await Member.findByPk(memberId);
     if (!member) {
       throw new Error('Member not found');
@@ -154,6 +173,7 @@ export class QRService {
     const payload: QRPayload = {
       type: 'membership',
       memberId,
+      merchantBrandId,
       exp: expiresAt.getTime(),
     };
 
@@ -162,6 +182,7 @@ export class QRService {
 
     const qrCode = await QRCode.create({
       memberId,
+      merchantBrandId,
       type: 'membership',
       payload,
       token,
@@ -208,6 +229,7 @@ export class QRService {
         valid: true,
         type: payload.type,
         memberId: payload.memberId,
+        merchantBrandId: payload.merchantBrandId,
         memberName: `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.phone,
         qrCodeId: qrCode.id,
       };
@@ -258,11 +280,13 @@ export class QRService {
     const details: Record<string, unknown> = {
       memberId: validation.memberId,
       memberName: validation.memberName,
+      merchantBrandId: validation.merchantBrandId,
     };
 
     if (validation.type === 'points' && validation.points) {
       await PointsService.redeemPoints({
         memberId: validation.memberId,
+        merchantBrandId: validation.merchantBrandId,
         points: validation.points,
         description: `Points redeemed at ${locationName || posId}`,
         referenceType: 'qr_redemption',

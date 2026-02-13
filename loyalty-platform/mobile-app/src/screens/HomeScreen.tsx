@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useMerchantStore } from '../store/merchantStore';
 import { api } from '../services/api';
 
 interface PointsTransaction {
@@ -23,6 +24,7 @@ interface PointsTransaction {
 
 export default function HomeScreen() {
   const { member, refreshProfile } = useAuthStore();
+  const { currentMerchantBrandId, currentMerchantBrand } = useMerchantStore();
   const [refreshing, setRefreshing] = useState(false);
   const [transactions, setTransactions] = useState<PointsTransaction[]>([]);
   const [tierProgress, setTierProgress] = useState<{
@@ -33,9 +35,10 @@ export default function HomeScreen() {
 
   const loadData = async () => {
     try {
+      const brandId = currentMerchantBrandId || undefined;
       const [historyRes, tierRes] = await Promise.all([
-        api.getPointsHistory(1, 5),
-        api.getTierProgress(),
+        api.getPointsHistory(1, 5, brandId),
+        api.getTierProgress(brandId),
       ]);
       setTransactions(historyRes.transactions);
       setTierProgress(tierRes);
@@ -48,11 +51,11 @@ export default function HomeScreen() {
     setRefreshing(true);
     await Promise.all([refreshProfile(), loadData()]);
     setRefreshing(false);
-  }, []);
+  }, [currentMerchantBrandId]);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentMerchantBrandId]);
 
   const renderTransaction = ({ item }: { item: PointsTransaction }) => (
     <View style={styles.transactionItem}>
@@ -90,6 +93,14 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Merchant Context Bar */}
+        {currentMerchantBrand && (
+          <View style={styles.merchantBar}>
+            <Ionicons name="storefront" size={18} color="#6366f1" />
+            <Text style={styles.merchantBarText}>{currentMerchantBrand.name}</Text>
+          </View>
+        )}
+
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>
@@ -189,6 +200,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  merchantBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#eef2ff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  merchantBarText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
   },
   header: {
     flexDirection: 'row',

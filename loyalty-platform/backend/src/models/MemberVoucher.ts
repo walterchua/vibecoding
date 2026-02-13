@@ -3,6 +3,7 @@ import sequelize from '../config/database';
 
 interface MemberVoucherAttributes {
   id: string;
+  merchantBrandId?: string;
   memberId: string;
   voucherId: string;
   status: 'active' | 'used' | 'expired';
@@ -13,10 +14,11 @@ interface MemberVoucherAttributes {
   updatedAt?: Date;
 }
 
-interface MemberVoucherCreationAttributes extends Optional<MemberVoucherAttributes, 'id' | 'status' | 'usedAt' | 'usedAtLocation' | 'createdAt' | 'updatedAt'> {}
+interface MemberVoucherCreationAttributes extends Optional<MemberVoucherAttributes, 'id' | 'merchantBrandId' | 'status' | 'usedAt' | 'usedAtLocation' | 'createdAt' | 'updatedAt'> {}
 
 class MemberVoucher extends Model<MemberVoucherAttributes, MemberVoucherCreationAttributes> implements MemberVoucherAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public memberId!: string;
   public voucherId!: string;
   public status!: 'active' | 'used' | 'expired';
@@ -33,6 +35,10 @@ MemberVoucher.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     memberId: {
       type: DataTypes.UUID,
@@ -64,6 +70,7 @@ MemberVoucher.init(
     tableName: 'member_vouchers',
     timestamps: true,
     indexes: [
+      { fields: ['merchantBrandId'] },
       { fields: ['memberId'] },
       { fields: ['voucherId'] },
       { fields: ['status'] },

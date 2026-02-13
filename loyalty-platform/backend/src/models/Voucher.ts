@@ -3,6 +3,7 @@ import sequelize from '../config/database';
 
 interface VoucherAttributes {
   id: string;
+  merchantBrandId?: string;
   name: string;
   code: string;
   description?: string;
@@ -22,10 +23,11 @@ interface VoucherAttributes {
   updatedAt?: Date;
 }
 
-interface VoucherCreationAttributes extends Optional<VoucherAttributes, 'id' | 'description' | 'minPurchase' | 'maxDiscount' | 'quantity' | 'usedCount' | 'termsConditions' | 'imageUrl' | 'isActive' | 'createdAt' | 'updatedAt'> {}
+interface VoucherCreationAttributes extends Optional<VoucherAttributes, 'id' | 'merchantBrandId' | 'description' | 'minPurchase' | 'maxDiscount' | 'quantity' | 'usedCount' | 'termsConditions' | 'imageUrl' | 'isActive' | 'createdAt' | 'updatedAt'> {}
 
 class Voucher extends Model<VoucherAttributes, VoucherCreationAttributes> implements VoucherAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public name!: string;
   public code!: string;
   public description?: string;
@@ -52,6 +54,10 @@ Voucher.init(
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
     name: {
       type: DataTypes.STRING(100),
       allowNull: false,
@@ -59,7 +65,6 @@ Voucher.init(
     code: {
       type: DataTypes.STRING(50),
       allowNull: false,
-      unique: true,
     },
     description: {
       type: DataTypes.TEXT,
@@ -120,7 +125,8 @@ Voucher.init(
     tableName: 'vouchers',
     timestamps: true,
     indexes: [
-      { fields: ['code'] },
+      { unique: true, fields: ['code', 'merchantBrandId'] },
+      { fields: ['merchantBrandId'] },
       { fields: ['isActive'] },
       { fields: ['validFrom', 'validUntil'] },
     ],

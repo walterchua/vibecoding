@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../App';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useMerchantStore } from '../store/merchantStore';
 
 interface Voucher {
   id: string;
@@ -39,6 +40,7 @@ type TabType = 'available' | 'myVouchers';
 export default function VouchersScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { member, refreshProfile } = useAuthStore();
+  const { currentMerchantBrandId } = useMerchantStore();
   const [activeTab, setActiveTab] = useState<TabType>('available');
   const [availableVouchers, setAvailableVouchers] = useState<Voucher[]>([]);
   const [myVouchers, setMyVouchers] = useState<MemberVoucher[]>([]);
@@ -47,9 +49,10 @@ export default function VouchersScreen() {
 
   const loadVouchers = async () => {
     try {
+      const brandId = currentMerchantBrandId || undefined;
       const [available, mine] = await Promise.all([
-        api.getAvailableVouchers(),
-        api.getMemberVouchers('active'),
+        api.getAvailableVouchers(brandId),
+        api.getMemberVouchers('active', brandId),
       ]);
       setAvailableVouchers(available.vouchers || []);
       setMyVouchers(mine.vouchers || []);
@@ -66,7 +69,7 @@ export default function VouchersScreen() {
 
   useEffect(() => {
     loadVouchers();
-  }, []);
+  }, [currentMerchantBrandId]);
 
   const handleClaimVoucher = async (voucher: Voucher) => {
     if (!member || member.points.available < voucher.pointsCost) {
@@ -84,7 +87,7 @@ export default function VouchersScreen() {
           onPress: async () => {
             setClaiming(voucher.id);
             try {
-              await api.claimVoucher(voucher.id);
+              await api.claimVoucher(voucher.id, currentMerchantBrandId || undefined);
               await Promise.all([loadVouchers(), refreshProfile()]);
               Alert.alert('Success', 'Voucher claimed successfully!');
             } catch (error) {

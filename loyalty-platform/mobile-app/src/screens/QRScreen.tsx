@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { api } from '../services/api';
 import { useAuthStore } from '../store/authStore';
+import { useMerchantStore } from '../store/merchantStore';
 
 interface MemberVoucher {
   id: string;
@@ -29,6 +30,7 @@ type QRType = 'membership' | 'points' | 'voucher';
 
 export default function QRScreen() {
   const { member } = useAuthStore();
+  const { currentMerchantBrandId } = useMerchantStore();
   const [qrType, setQRType] = useState<QRType>('membership');
   const [qrData, setQRData] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,7 +79,7 @@ export default function QRScreen() {
   const generateMembershipQR = async () => {
     setIsLoading(true);
     try {
-      const response = await api.generateMembershipQR();
+      const response = await api.generateMembershipQR(currentMerchantBrandId || undefined);
       setQRData(response.qrCode.token);
       setExpiresAt(new Date(response.qrCode.expiresAt));
     } catch (error) {
@@ -100,7 +102,7 @@ export default function QRScreen() {
 
     setIsLoading(true);
     try {
-      const response = await api.generatePointsQR(points);
+      const response = await api.generatePointsQR(points, currentMerchantBrandId || undefined);
       setQRData(response.qrCode.token);
       setExpiresAt(new Date(response.qrCode.expiresAt));
     } catch (error) {
@@ -118,7 +120,7 @@ export default function QRScreen() {
 
     setIsLoading(true);
     try {
-      const response = await api.generateVoucherQR(selectedVoucher.id);
+      const response = await api.generateVoucherQR(selectedVoucher.id, currentMerchantBrandId || undefined);
       setQRData(response.qrCode.token);
       setExpiresAt(new Date(response.qrCode.expiresAt));
     } catch (error) {

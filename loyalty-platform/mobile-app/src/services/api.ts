@@ -108,8 +108,10 @@ class ApiService {
   }
 
   // Member
-  async getProfile() {
-    const response = await this.api.get('/members/me');
+  async getProfile(merchantBrandId?: string) {
+    const response = await this.api.get('/members/me', {
+      params: merchantBrandId ? { merchantBrandId } : {},
+    });
     return response.data;
   }
 
@@ -124,27 +126,34 @@ class ApiService {
     return response.data;
   }
 
-  async getPointsHistory(page = 1, limit = 20) {
+  async getPointsHistory(page = 1, limit = 20, merchantBrandId?: string) {
     const response = await this.api.get('/members/me/points', {
-      params: { page, limit },
+      params: { page, limit, ...(merchantBrandId ? { merchantBrandId } : {}) },
     });
     return response.data;
   }
 
-  async getTierProgress() {
-    const response = await this.api.get('/members/me/tier');
+  async getTierProgress(merchantBrandId?: string) {
+    const response = await this.api.get('/members/me/tier', {
+      params: merchantBrandId ? { merchantBrandId } : {},
+    });
     return response.data;
   }
 
   // Vouchers
-  async getAvailableVouchers() {
-    const response = await this.api.get('/vouchers');
+  async getAvailableVouchers(merchantBrandId?: string) {
+    const response = await this.api.get('/vouchers', {
+      params: merchantBrandId ? { merchantBrandId } : {},
+    });
     return response.data;
   }
 
-  async getMemberVouchers(status?: string) {
+  async getMemberVouchers(status?: string, merchantBrandId?: string) {
     const response = await this.api.get('/vouchers/member/list', {
-      params: status ? { status } : {},
+      params: {
+        ...(status ? { status } : {}),
+        ...(merchantBrandId ? { merchantBrandId } : {}),
+      },
     });
     return response.data;
   }
@@ -159,32 +168,55 @@ class ApiService {
     return response.data;
   }
 
-  async claimVoucher(voucherId: string) {
-    const response = await this.api.post(`/vouchers/${voucherId}/claim`);
+  async claimVoucher(voucherId: string, merchantBrandId?: string) {
+    const response = await this.api.post(`/vouchers/${voucherId}/claim`, null, {
+      params: merchantBrandId ? { merchantBrandId } : {},
+    });
     return response.data;
   }
 
   // QR
-  async generatePointsQR(points: number) {
-    const response = await this.api.post('/qr/generate/points', { points });
+  async generatePointsQR(points: number, merchantBrandId?: string) {
+    const response = await this.api.post('/qr/generate/points', { points, merchantBrandId });
     return response.data;
   }
 
-  async generateVoucherQR(memberVoucherId: string) {
-    const response = await this.api.post('/qr/generate/voucher', { memberVoucherId });
+  async generateVoucherQR(memberVoucherId: string, merchantBrandId?: string) {
+    const response = await this.api.post('/qr/generate/voucher', { memberVoucherId, merchantBrandId });
     return response.data;
   }
 
-  async generateMembershipQR() {
-    const response = await this.api.post('/qr/generate/membership');
+  async generateMembershipQR(merchantBrandId?: string) {
+    const response = await this.api.post('/qr/generate/membership', { merchantBrandId });
     return response.data;
   }
 
   // Transactions
-  async getTransactionHistory(page = 1, limit = 20) {
+  async getTransactionHistory(page = 1, limit = 20, merchantBrandId?: string) {
     const response = await this.api.get('/transactions/member/history', {
-      params: { page, limit },
+      params: { page, limit, ...(merchantBrandId ? { merchantBrandId } : {}) },
     });
+    return response.data;
+  }
+
+  // Merchant Brands (member context)
+  async browseMerchants() {
+    const response = await this.api.get('/member-merchants/browse');
+    return response.data;
+  }
+
+  async getMyMerchants() {
+    const response = await this.api.get('/member-merchants');
+    return response.data;
+  }
+
+  async joinMerchant(merchantBrandId: string) {
+    const response = await this.api.post(`/member-merchants/${merchantBrandId}/join`);
+    return response.data;
+  }
+
+  async getMerchantProfile(merchantBrandId: string) {
+    const response = await this.api.get(`/member-merchants/${merchantBrandId}`);
     return response.data;
   }
 }

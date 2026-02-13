@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
+import { useMerchantStore } from '../store/merchantStore';
 import { api } from '../services/api';
 
 export default function ProfileScreen() {
   const { member, logout, refreshProfile } = useAuthStore();
+  const { myMerchants } = useMerchantStore();
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState(member?.firstName || '');
   const [lastName, setLastName] = useState(member?.lastName || '');
@@ -195,6 +197,26 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
+
+        {/* My Loyalty Programs */}
+        {myMerchants.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>My Loyalty Programs</Text>
+            {myMerchants.map((m) => (
+              <View key={m.merchantBrandId} style={styles.loyaltyItem}>
+                <View style={styles.loyaltyIcon}>
+                  <Ionicons name="storefront" size={20} color="#6366f1" />
+                </View>
+                <View style={styles.loyaltyContent}>
+                  <Text style={styles.loyaltyName}>{m.brand?.name || 'Unknown'}</Text>
+                  <Text style={styles.loyaltyPoints}>
+                    {m.availablePoints?.toLocaleString() || 0} points
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Menu */}
         <View style={styles.section}>
@@ -405,6 +427,35 @@ const styles = StyleSheet.create({
   menuSubtitle: {
     fontSize: 13,
     color: '#6b7280',
+    marginTop: 2,
+  },
+  loyaltyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  loyaltyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#eef2ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  loyaltyContent: {
+    flex: 1,
+  },
+  loyaltyName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  loyaltyPoints: {
+    fontSize: 13,
+    color: '#6366f1',
     marginTop: 2,
   },
   version: {

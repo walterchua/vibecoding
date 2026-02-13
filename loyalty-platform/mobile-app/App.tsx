@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from './src/store/authStore';
+import { useMerchantStore } from './src/store/merchantStore';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -15,6 +16,8 @@ import VouchersScreen from './src/screens/VouchersScreen';
 import QRScreen from './src/screens/QRScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import VoucherDetailScreen from './src/screens/VoucherDetailScreen';
+import MerchantListScreen from './src/screens/MerchantListScreen';
+import MerchantDiscoverScreen from './src/screens/MerchantDiscoverScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -22,6 +25,8 @@ export type RootStackParamList = {
   Register: { phone: string };
   Main: undefined;
   VoucherDetail: { voucherId: string };
+  MerchantList: undefined;
+  MerchantDiscover: undefined;
 };
 
 export type MainTabParamList = {
@@ -68,6 +73,7 @@ function MainTabs() {
 
 export default function App() {
   const { isAuthenticated, initialize, isLoading } = useAuthStore();
+  const initMerchants = useMerchantStore((s) => s.initialize);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -77,6 +83,13 @@ export default function App() {
     };
     init();
   }, []);
+
+  // Initialize merchant store after auth
+  useEffect(() => {
+    if (isAuthenticated && isReady) {
+      initMerchants();
+    }
+  }, [isAuthenticated, isReady]);
 
   if (!isReady || isLoading) {
     return null; // Or a loading screen
@@ -99,6 +112,16 @@ export default function App() {
               name="VoucherDetail"
               component={VoucherDetailScreen}
               options={{ headerShown: true, title: 'Voucher Details' }}
+            />
+            <Stack.Screen
+              name="MerchantList"
+              component={MerchantListScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="MerchantDiscover"
+              component={MerchantDiscoverScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

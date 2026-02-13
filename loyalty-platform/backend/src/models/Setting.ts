@@ -3,6 +3,7 @@ import sequelize from '../config/database';
 
 interface SettingAttributes {
   id: string;
+  merchantBrandId?: string;
   category: string;
   key: string;
   value: unknown;
@@ -10,10 +11,11 @@ interface SettingAttributes {
   updatedAt?: Date;
 }
 
-interface SettingCreationAttributes extends Optional<SettingAttributes, 'id' | 'createdAt' | 'updatedAt'> {}
+interface SettingCreationAttributes extends Optional<SettingAttributes, 'id' | 'merchantBrandId' | 'createdAt' | 'updatedAt'> {}
 
 class Setting extends Model<SettingAttributes, SettingCreationAttributes> implements SettingAttributes {
   public id!: string;
+  public merchantBrandId?: string;
   public category!: string;
   public key!: string;
   public value!: unknown;
@@ -27,6 +29,10 @@ Setting.init(
       type: DataTypes.UUID,
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
+    },
+    merchantBrandId: {
+      type: DataTypes.UUID,
+      allowNull: true,
     },
     category: {
       type: DataTypes.STRING(50),
@@ -48,8 +54,9 @@ Setting.init(
     indexes: [
       {
         unique: true,
-        fields: ['category', 'key'],
+        fields: ['category', 'key', 'merchantBrandId'],
       },
+      { fields: ['merchantBrandId'] },
     ],
   }
 );
