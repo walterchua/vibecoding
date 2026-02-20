@@ -14,7 +14,7 @@ const sequelize = new Sequelize({
   pool: {
     max: 10,
     min: 2,
-    acquire: 30000,
+    acquire: 60000,
     idle: 10000,
   },
   dialectOptions: process.env.DB_SSL === 'true' ? {
@@ -22,7 +22,12 @@ const sequelize = new Sequelize({
       require: true,
       rejectUnauthorized: false,
     },
+    statement_timeout: 60000,
+    idle_in_transaction_session_timeout: 60000,
   } : {},
+  retry: {
+    max: 3,
+  },
 });
 
 export const connectDatabase = async (): Promise<void> => {
